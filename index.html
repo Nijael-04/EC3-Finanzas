@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EC3 Finanzas – InnovaTech Solutions S.A.C. | Grupo 3</title>
+    <meta name="description" content="Análisis de Sensibilidad y Flujo de Caja – Caso StockCloud – Universidad Científica del Sur">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        /* ═══════════════════════════════════════════
+           DESIGN SYSTEM & VARIABLES
+           ═══════════════════════════════════════════ */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(30, 41, 59, 0.8);
+            --glass: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-indigo: #6366f1;
+            --gradient-primary: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+            --gradient-warm: linear-gradient(135deg, #f59e0b, #f43f5e);
+            --gradient-cool: linear-gradient(135deg, #10b981, #06b6d4);
+            --gradient-deep: linear-gradient(135deg, #1e1b4b, #0f172a, #042f2e);
+            --shadow-glow: 0 0 40px rgba(6, 182, 212, 0.15);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --font-main: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        /* ═══════════════════════════════════════════
+           RESET & BASE
+           ═══════════════════════════════════════════ */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font-main);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════════════════════════════
+           PRESENTATION CONTAINER
+           ═══════════════════════════════════════════ */
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3vh 4vw;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(60px);
+            transition: all 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .slide.exit-left {
+            opacity: 0;
+            transform: translateX(-60px);
+        }
+
+        /* Animated background mesh for all slides */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 80%, rgba(59, 130, 246, 0.04) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ═══════════════════════════════════════════
+           TYPOGRAPHY
+           ═══════════════════════════════════════════ */
+        .slide-title {
+            font-size: clamp(1.4rem, 3vw, 2.6rem);
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5vh;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .slide-subtitle {
+            font-size: clamp(0.85rem, 1.4vw, 1.15rem);
+            color: var(--text-secondary);
+            font-weight: 400;
+            text-align: center;
+            max-width: 75ch;
+            line-height: 1.5;
+            margin-bottom: 2vh;
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: clamp(0.65rem, 0.9vw, 0.8rem);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent-cyan);
+            margin-bottom: 1vh;
+            padding: 4px 14px;
+            border-radius: 20px;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        /* ═══════════════════════════════════════════
+           CARDS & GLASS ELEMENTS
+           ═══════════════════════════════════════════ */
+        .glass-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: clamp(12px, 2vh, 20px) clamp(14px, 2vw, 24px);
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .content-grid {
+            display: grid;
+            gap: clamp(10px, 1.5vh, 18px);
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-5 { grid-template-columns: repeat(5, 1fr); }
+
+        /* ═══════════════════════════════════════════
+           KPI METRICS
+           ═══════════════════════════════════════════ */
+        .kpi-value {
+            font-size: clamp(1.5rem, 3.5vw, 3rem);
+            font-weight: 800;
+            font-family: var(--font-mono);
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+        }
+
+        .kpi-label {
+            font-size: clamp(0.6rem, 0.9vw, 0.8rem);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 4px;
+        }
+
+        .kpi-cyan .kpi-value { color: var(--accent-cyan); }
+        .kpi-blue .kpi-value { color: var(--accent-blue); }
+        .kpi-purple .kpi-value { color: var(--accent-purple); }
+        .kpi-emerald .kpi-value { color: var(--accent-emerald); }
+        .kpi-amber .kpi-value { color: var(--accent-amber); }
+
+        /* ═══════════════════════════════════════════
+           TABLES
+           ═══════════════════════════════════════════ */
+        .data-table-wrap {
+            width: 100%;
+            max-width: 1400px;
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: clamp(0.55rem, 0.85vw, 0.78rem);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .data-table thead th {
+            background: rgba(6, 182, 212, 0.12);
+            color: var(--accent-cyan);
+            font-weight: 600;
+            padding: clamp(6px, 1vh, 12px) clamp(8px, 1vw, 16px);
+            text-align: right;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            white-space: nowrap;
+        }
+
+        .data-table thead th:first-child {
+            text-align: left;
+        }
+
+        .data-table tbody td {
+            padding: clamp(5px, 0.8vh, 10px) clamp(8px, 1vw, 16px);
+            text-align: right;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-family: var(--font-mono);
+            font-size: clamp(0.55rem, 0.8vw, 0.75rem);
+            color: var(--text-secondary);
+        }
+
+        .data-table tbody td:first-child {
+            text-align: left;
+            font-family: var(--font-main);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .data-table tbody tr.highlight-row td {
+            color: var(--accent-cyan);
+            font-weight: 600;
+            background: rgba(6, 182, 212, 0.06);
+        }
+
+        .data-table tbody tr.total-row td {
+            color: var(--accent-emerald);
+            font-weight: 700;
+            background: rgba(16, 185, 129, 0.08);
+            border-top: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .data-table tbody td.negative {
+            color: var(--accent-rose);
+        }
+
+        /* ═══════════════════════════════════════════
+           CHART CONTAINERS
+           ═══════════════════════════════════════════ */
+        .chart-container {
+            width: 100%;
+            position: relative;
+        }
+
+        .chart-container canvas {
+            width: 100% !important;
+            max-height: 100%;
+        }
+
+        /* ═══════════════════════════════════════════
+           BULLET / LIST ITEMS
+           ═══════════════════════════════════════════ */
+        .insight-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 1vh, 12px);
+        }
+
+        .insight-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .insight-list li .bullet {
+            flex-shrink: 0;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            margin-top: 7px;
+        }
+
+        .insight-list li strong {
+            color: var(--text-primary);
+        }
+
+        /* ═══════════════════════════════════════════
+           TAG / BADGE
+           ═══════════════════════════════════════════ */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: clamp(0.55rem, 0.7vw, 0.7rem);
+            font-weight: 600;
+        }
+
+        .tag-cyan { background: rgba(6,182,212,0.15); color: var(--accent-cyan); }
+        .tag-emerald { background: rgba(16,185,129,0.15); color: var(--accent-emerald); }
+        .tag-amber { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+        .tag-rose { background: rgba(244,63,94,0.15); color: var(--accent-rose); }
+        .tag-purple { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+
+        /* ═══════════════════════════════════════════
+           ICON CIRCLES
+           ═══════════════════════════════════════════ */
+        .icon-circle {
+            width: clamp(32px, 4vh, 44px);
+            height: clamp(32px, 4vh, 44px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(14px, 2vh, 20px);
+            flex-shrink: 0;
+        }
+
+        .icon-cyan { background: rgba(6,182,212,0.15); color: var(--accent-cyan); }
+        .icon-blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+        .icon-purple { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+        .icon-emerald { background: rgba(16,185,129,0.15); color: var(--accent-emerald); }
+        .icon-amber { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+        .icon-rose { background: rgba(244,63,94,0.15); color: var(--accent-rose); }
+
+        /* ═══════════════════════════════════════════
+           PROGRESS / BAR
+           ═══════════════════════════════════════════ */
+        .sensitivity-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sensitivity-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sensitivity-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ═══════════════════════════════════════════
+           NAVIGATION
+           ═══════════════════════════════════════════ */
+        .nav-controls {
+            position: fixed;
+            bottom: 2vh;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            padding: 8px 16px;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+        }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            font-size: 14px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(6, 182, 212, 0.2);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .nav-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot.active {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .slide-counter {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-weight: 500;
+            min-width: 42px;
+            text-align: center;
+        }
+
+        /* ═══════════════════════════════════════════
+           PROGRESS BAR TOP
+           ═══════════════════════════════════════════ */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            z-index: 200;
+            transition: width 0.4s ease;
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+        }
+
+        /* ═══════════════════════════════════════════
+           COVER SLIDE SPECIAL
+           ═══════════════════════════════════════════ */
+        .cover-logo {
+            font-size: clamp(2rem, 5vw, 4rem);
+            margin-bottom: 1vh;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .cover-university {
+            font-size: clamp(0.6rem, 0.9vw, 0.8rem);
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            color: var(--text-muted);
+            margin-bottom: 2vh;
+        }
+
+        .cover-title {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+            margin-bottom: 1vh;
+        }
+
+        .cover-case {
+            font-size: clamp(1rem, 2.2vw, 1.8rem);
+            color: var(--text-secondary);
+            font-weight: 300;
+            text-align: center;
+            margin-bottom: 3vh;
+        }
+
+        .cover-meta {
+            display: flex;
+            gap: clamp(15px, 3vw, 40px);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .cover-meta-item {
+            text-align: center;
+        }
+
+        .cover-meta-item .label {
+            font-size: clamp(0.55rem, 0.7vw, 0.7rem);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .cover-meta-item .value {
+            font-size: clamp(0.75rem, 1vw, 0.9rem);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ═══════════════════════════════════════════
+           ANIMATIONS
+           ═══════════════════════════════════════════ */
+        .slide.active .fade-up {
+            animation: fadeUp 0.6s ease forwards;
+        }
+
+        .slide.active .fade-up:nth-child(1) { animation-delay: 0.05s; }
+        .slide.active .fade-up:nth-child(2) { animation-delay: 0.12s; }
+        .slide.active .fade-up:nth-child(3) { animation-delay: 0.19s; }
+        .slide.active .fade-up:nth-child(4) { animation-delay: 0.26s; }
+        .slide.active .fade-up:nth-child(5) { animation-delay: 0.33s; }
+        .slide.active .fade-up:nth-child(6) { animation-delay: 0.40s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-up {
+            opacity: 0;
+        }
+
+        /* Decorative animated orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 8s ease-in-out infinite;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(20px, -30px) scale(1.05); }
+            66% { transform: translate(-15px, 15px) scale(0.95); }
+        }
+
+        /* ═══════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════ */
+        @media (max-width: 900px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .slide { padding: 2vh 3vw; }
+            .data-table { font-size: 0.6rem; }
+            .cover-meta { flex-direction: column; align-items: center; gap: 8px; }
+        }
+
+        @media (max-width: 600px) {
+            .nav-dots { display: none; }
+            .slide { padding: 1.5vh 2.5vw; }
+        }
+
+        @media (min-width: 1920px) {
+            .slide { padding: 4vh 8vw; }
+        }
+
+        /* ═══════════════════════════════════════════
+           SENSITIVITY HEATMAP CUSTOM
+           ═══════════════════════════════════════════ */
+        .heatmap-table td {
+            font-family: var(--font-mono);
+            text-align: center !important;
+            transition: all 0.3s ease;
+        }
+
+        .heatmap-table td.heat-high { 
+            background: rgba(16, 185, 129, 0.12); 
+            color: var(--accent-emerald);
+        }
+        .heatmap-table td.heat-base { 
+            background: rgba(59, 130, 246, 0.12); 
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+        .heatmap-table td.heat-low { 
+            background: rgba(245, 158, 11, 0.08); 
+            color: var(--accent-amber);
+        }
+
+        /* Recommendation cards */
+        .rec-card {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .rec-letter {
+            width: clamp(28px, 3.5vh, 36px);
+            height: clamp(28px, 3.5vh, 36px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
+            flex-shrink: 0;
+        }
+
+        .rec-text {
+            font-size: clamp(0.65rem, 0.95vw, 0.85rem);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .rec-text strong { color: var(--text-primary); }
+
+        /* Two-col layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(12px, 2vw, 24px);
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        @media (max-width: 900px) {
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        .col-full {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            bottom: 8vh;
+            right: 3vw;
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.06);
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        /* References */
+        .ref-item {
+            font-size: clamp(0.6rem, 0.85vw, 0.78rem);
+            color: var(--text-muted);
+            line-height: 1.6;
+            padding-left: 16px;
+            border-left: 2px solid rgba(6, 182, 212, 0.2);
+            margin-bottom: clamp(6px, 1vh, 10px);
+        }
+
+        .ref-item a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        .ref-item a:hover {
+            text-decoration: underline;
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 8vh;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+            transition: opacity 0.5s;
+            z-index: 50;
+        }
+
+        .keyboard-hint.hidden { opacity: 0; pointer-events: none; }
+
+        kbd {
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+        }
+
+        /* Inversion breakdown */
+        .inv-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: clamp(6px, 1vh, 10px) 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .inv-item:last-child { border-bottom: none; }
+
+        .inv-item .inv-name {
+            font-size: clamp(0.65rem, 0.9vw, 0.82rem);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .inv-item .inv-amount {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Fullscreen button */
+        .fullscreen-btn {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 200;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(10, 14, 26, 0.7);
+            backdrop-filter: blur(8px);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.25s ease;
+        }
+
+        .fullscreen-btn:hover {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+<div class="watermark">GRUPO 3 — FIN5C — EC3</div>
+
+<button class="fullscreen-btn" id="fullscreenBtn" title="Pantalla completa">⛶</button>
+
+<div class="presentation" id="presentation">
+
+    <!-- ============================================
+         SLIDE 0: COVER
+         ============================================ -->
+    <div class="slide active" id="slide-0">
+        <div class="orb" style="width:300px;height:300px;background:var(--accent-cyan);top:10%;left:5%;"></div>
+        <div class="orb" style="width:250px;height:250px;background:var(--accent-purple);bottom:15%;right:10%;animation-delay:-3s;"></div>
+        <div class="cover-logo fade-up">☁️</div>
+        <div class="cover-university fade-up">Universidad Científica del Sur · Facultad de Ingeniería Empresarial y de Sistemas</div>
+        <h1 class="cover-title fade-up">Análisis de Sensibilidad<br>y Flujo de Caja</h1>
+        <p class="cover-case fade-up">Caso: InnovaTech Solutions S.A.C. — Plataforma SaaS «StockCloud»</p>
+        <div class="cover-meta fade-up">
+            <div class="cover-meta-item">
+                <div class="label">Curso</div>
+                <div class="value">Finanzas</div>
+            </div>
+            <div class="cover-meta-item">
+                <div class="label">Evaluación</div>
+                <div class="value">EC3</div>
+            </div>
+            <div class="cover-meta-item">
+                <div class="label">Grupo</div>
+                <div class="value">3</div>
+            </div>
+            <div class="cover-meta-item">
+                <div class="label">Fecha</div>
+                <div class="value">Julio 2026</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 1: INTRODUCCIÓN
+         ============================================ -->
+    <div class="slide" id="slide-1">
+        <span class="section-label fade-up">📋 Introducción</span>
+        <h2 class="slide-title fade-up">¿Por qué evaluar un proyecto de inversión?</h2>
+        <p class="slide-subtitle fade-up">Las empresas necesitan herramientas confiables para estimar si una inversión será rentable y qué tan expuesta está a los riesgos del mercado.</p>
+        <div class="content-grid grid-2 fade-up" style="max-width:1200px;">
+            <div class="glass-card">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <div class="icon-circle icon-cyan">📊</div>
+                    <strong style="font-size:clamp(0.8rem,1.1vw,1rem);">Flujo de Caja Proyectado</strong>
+                </div>
+                <p style="font-size:clamp(0.65rem,0.9vw,0.82rem);color:var(--text-secondary);line-height:1.6;">
+                    Muestra cuánto dinero generará el proyecto en el futuro, considerando ingresos, costos e inversiones necesarias.
+                </p>
+            </div>
+            <div class="glass-card">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <div class="icon-circle icon-purple">🔍</div>
+                    <strong style="font-size:clamp(0.8rem,1.1vw,1rem);">Análisis de Sensibilidad</strong>
+                </div>
+                <p style="font-size:clamp(0.65rem,0.9vw,0.82rem);color:var(--text-secondary);line-height:1.6;">
+                    Evalúa qué pasaría con los resultados si cambian las condiciones iniciales, como captar menos clientes de los esperados.
+                </p>
+            </div>
+        </div>
+        <div class="glass-card fade-up" style="max-width:1200px;margin-top:clamp(10px,1.5vh,16px);border-left:3px solid var(--accent-amber);">
+            <p style="font-size:clamp(0.65rem,0.9vw,0.82rem);color:var(--text-secondary);line-height:1.6;">
+                <strong style="color:var(--accent-amber);">Relevancia para Ing. Empresarial y de Sistemas:</strong> Quienes lideran proyectos tecnológicos no solo deben dominar la tecnología, también deben saber justificar con números si conviene invertir y anticipar qué variables vigilar más de cerca.
+            </p>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 2: RESEÑA TEÓRICA
+         ============================================ -->
+    <div class="slide" id="slide-2">
+        <span class="section-label fade-up">📚 Marco Teórico</span>
+        <h2 class="slide-title fade-up">Conceptos Clave del Análisis Financiero</h2>
+        <div class="content-grid grid-3 fade-up" style="max-width:1400px;">
+            <div class="glass-card">
+                <div class="icon-circle icon-cyan" style="margin-bottom:8px;">💰</div>
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);display:block;margin-bottom:6px;">Flujo de Caja Libre</strong>
+                <p style="font-size:clamp(0.6rem,0.82vw,0.75rem);color:var(--text-secondary);line-height:1.5;">
+                    Dinero que queda después de cubrir gastos de operación e inversión. No se ve afectado por la depreciación, reflejando mejor la capacidad real de generar efectivo.
+                </p>
+                <span class="tag tag-cyan" style="margin-top:8px;">Valutico, 2026</span>
+            </div>
+            <div class="glass-card">
+                <div class="icon-circle icon-emerald" style="margin-bottom:8px;">📈</div>
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);display:block;margin-bottom:6px;">VAN y TIR</strong>
+                <p style="font-size:clamp(0.6rem,0.82vw,0.75rem);color:var(--text-secondary);line-height:1.5;">
+                    Los flujos se traen a valor presente usando el COK (rentabilidad mínima exigida). Con ello se obtienen el <strong>VAN</strong> (Valor Actual Neto) y la <strong>TIR</strong> (Tasa Interna de Retorno).
+                </p>
+                <span class="tag tag-emerald" style="margin-top:8px;">Chumacero, 2021</span>
+            </div>
+            <div class="glass-card">
+                <div class="icon-circle icon-purple" style="margin-bottom:8px;">🔬</div>
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);display:block;margin-bottom:6px;">Análisis de Sensibilidad</strong>
+                <p style="font-size:clamp(0.6rem,0.82vw,0.75rem);color:var(--text-secondary);line-height:1.5;">
+                    Cambiar una por una las variables más importantes (precio, demanda, costos) para observar cómo cada cambio afecta a los resultados financieros.
+                </p>
+                <span class="tag tag-purple" style="margin-top:8px;">LBBNRD, 2024</span>
+            </div>
+        </div>
+        <div class="glass-card fade-up" style="max-width:1400px;margin-top:clamp(10px,1.5vh,16px);border-left:3px solid var(--accent-emerald);">
+            <p style="font-size:clamp(0.62rem,0.85vw,0.78rem);color:var(--text-secondary);line-height:1.5;">
+                <strong style="color:var(--accent-emerald);">💡 Aporte del Grupo:</strong> En proyectos SaaS, el análisis de sensibilidad es aún más importante porque los ingresos dependen de captación de clientes y precio —variables difíciles de predecir—, y cambios pequeños en demanda generan cambios mucho más grandes en rentabilidad.
+            </p>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 3: PLANTEAMIENTO DEL CASO
+         ============================================ -->
+    <div class="slide" id="slide-3">
+        <span class="section-label fade-up">🏢 Planteamiento del Caso</span>
+        <h2 class="slide-title fade-up">InnovaTech Solutions S.A.C.</h2>
+        <p class="slide-subtitle fade-up">Empresa peruana de consultoría en transformación digital que evalúa lanzar «StockCloud», una plataforma SaaS de gestión de inventarios para pymes de retail y logística.</p>
+        <div class="two-col fade-up">
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <div class="icon-circle icon-amber">💵</div>Inversión Inicial: S/ 350,000
+                </strong>
+                <div class="inv-item">
+                    <span class="inv-name">🖥️ Desarrollo de software</span>
+                    <span class="inv-amount">S/ 200,000</span>
+                </div>
+                <div class="inv-item">
+                    <span class="inv-name">🗄️ Servidores y equipos</span>
+                    <span class="inv-amount">S/ 50,000</span>
+                </div>
+                <div class="inv-item">
+                    <span class="inv-name">📢 Campaña de lanzamiento</span>
+                    <span class="inv-amount">S/ 60,000</span>
+                </div>
+                <div class="inv-item">
+                    <span class="inv-name">🔄 Capital de trabajo</span>
+                    <span class="inv-amount">S/ 40,000</span>
+                </div>
+            </div>
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <div class="icon-circle icon-blue">📐</div>Parámetros del Proyecto
+                </strong>
+                <ul class="insight-list">
+                    <li><span class="bullet" style="background:var(--accent-blue);"></span><span><strong>Horizonte:</strong> 5 años</span></li>
+                    <li><span class="bullet" style="background:var(--accent-blue);"></span><span><strong>Precio:</strong> S/ 180/mes por cliente</span></li>
+                    <li><span class="bullet" style="background:var(--accent-blue);"></span><span><strong>Hosting:</strong> 12% de ingresos</span></li>
+                    <li><span class="bullet" style="background:var(--accent-blue);"></span><span><strong>Marketing:</strong> 10% de ingresos</span></li>
+                    <li><span class="bullet" style="background:var(--accent-blue);"></span><span><strong>COK:</strong> 15% anual</span></li>
+                    <li><span class="bullet" style="background:var(--accent-blue);"></span><span><strong>Impuesto:</strong> 29.5%</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 4: CRECIMIENTO DE CLIENTES
+         ============================================ -->
+    <div class="slide" id="slide-4">
+        <span class="section-label fade-up">📈 Proyección</span>
+        <h2 class="slide-title fade-up">Crecimiento Proyectado de Clientes e Ingresos</h2>
+        <div class="two-col fade-up">
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);margin-bottom:8px;display:block;">Clientes Activos por Año</strong>
+                <div class="chart-container" style="height:clamp(150px, 28vh, 280px);">
+                    <canvas id="chartClientes"></canvas>
+                </div>
+            </div>
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);margin-bottom:8px;display:block;">Ingresos Anuales (S/)</strong>
+                <div class="chart-container" style="height:clamp(150px, 28vh, 280px);">
+                    <canvas id="chartIngresos"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="content-grid grid-5 fade-up" style="max-width:1400px;margin-top:clamp(8px,1.2vh,14px);">
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Año 1</div>
+                <div class="kpi-value" style="color:var(--accent-cyan);font-size:clamp(1.1rem,2vw,1.6rem);">100</div>
+                <div class="kpi-label">S/ 216K</div>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Año 2</div>
+                <div class="kpi-value" style="color:var(--accent-blue);font-size:clamp(1.1rem,2vw,1.6rem);">275</div>
+                <div class="kpi-label">S/ 594K</div>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Año 3</div>
+                <div class="kpi-value" style="color:var(--accent-indigo);font-size:clamp(1.1rem,2vw,1.6rem);">550</div>
+                <div class="kpi-label">S/ 1,188K</div>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Año 4</div>
+                <div class="kpi-value" style="color:var(--accent-purple);font-size:clamp(1.1rem,2vw,1.6rem);">825</div>
+                <div class="kpi-label">S/ 1,782K</div>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Año 5</div>
+                <div class="kpi-value" style="color:var(--accent-emerald);font-size:clamp(1.1rem,2vw,1.6rem);">1,075</div>
+                <div class="kpi-label">S/ 2,322K</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 5: FLUJO DE CAJA – TABLA
+         ============================================ -->
+    <div class="slide" id="slide-5">
+        <span class="section-label fade-up">💹 Resolución del Caso</span>
+        <h2 class="slide-title fade-up">Flujo de Caja Proyectado — Escenario Base</h2>
+        <p class="slide-subtitle fade-up" style="margin-bottom:1.5vh;">Montos en soles (S/). EBITDA = Utilidad antes de intereses, impuestos, depreciación y amortización.</p>
+        <div class="data-table-wrap fade-up">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="min-width:180px;">Concepto</th>
+                        <th>Año 1</th>
+                        <th>Año 2</th>
+                        <th>Año 3</th>
+                        <th>Año 4</th>
+                        <th>Año 5</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Ingresos por suscripción</td>
+                        <td>216,000</td><td>594,000</td><td>1,188,000</td><td>1,782,000</td><td>2,322,000</td>
+                    </tr>
+                    <tr>
+                        <td>(–) Costo hosting/nube (12%)</td>
+                        <td>25,920</td><td>71,280</td><td>142,560</td><td>213,840</td><td>278,640</td>
+                    </tr>
+                    <tr>
+                        <td>(–) Marketing continuo (10%)</td>
+                        <td>21,600</td><td>59,400</td><td>118,800</td><td>178,200</td><td>232,200</td>
+                    </tr>
+                    <tr>
+                        <td>(–) Soporte técnico</td>
+                        <td>80,000</td><td>120,000</td><td>180,000</td><td>220,000</td><td>260,000</td>
+                    </tr>
+                    <tr>
+                        <td>(–) Gastos administrativos</td>
+                        <td>60,000</td><td>70,000</td><td>85,000</td><td>95,000</td><td>105,000</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td>EBITDA</td>
+                        <td>28,480</td><td>273,320</td><td>661,640</td><td>1,074,960</td><td>1,446,160</td>
+                    </tr>
+                    <tr>
+                        <td>(–) Depreciación</td>
+                        <td>50,000</td><td>50,000</td><td>50,000</td><td>50,000</td><td>50,000</td>
+                    </tr>
+                    <tr>
+                        <td>EBIT</td>
+                        <td class="negative">-21,520</td><td>223,320</td><td>611,640</td><td>1,024,960</td><td>1,396,160</td>
+                    </tr>
+                    <tr>
+                        <td>(–) Impuesto (29.5%)</td>
+                        <td>0</td><td>65,879</td><td>180,434</td><td>302,363</td><td>411,867</td>
+                    </tr>
+                    <tr>
+                        <td>Utilidad neta</td>
+                        <td class="negative">-21,520</td><td>157,441</td><td>431,206</td><td>722,597</td><td>984,293</td>
+                    </tr>
+                    <tr>
+                        <td>(+) Depreciación</td>
+                        <td>50,000</td><td>50,000</td><td>50,000</td><td>50,000</td><td>50,000</td>
+                    </tr>
+                    <tr>
+                        <td>(+) Recup. capital de trabajo</td>
+                        <td>—</td><td>—</td><td>—</td><td>—</td><td>40,000</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Flujo de Caja Operativo (FCO)</td>
+                        <td>28,480</td><td>207,441</td><td>481,206</td><td>772,597</td><td>1,074,293</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 6: VAN Y TIR + GRÁFICO FCO
+         ============================================ -->
+    <div class="slide" id="slide-6">
+        <span class="section-label fade-up">🎯 Resultados Clave</span>
+        <h2 class="slide-title fade-up">Rentabilidad del Proyecto</h2>
+        <div class="two-col fade-up">
+            <div style="display:flex;flex-direction:column;gap:clamp(10px,1.5vh,16px);">
+                <div class="glass-card kpi-emerald" style="text-align:center;">
+                    <div class="kpi-label">Valor Actual Neto (VAN)</div>
+                    <div class="kpi-value" style="font-size:clamp(1.6rem,3.5vw,2.8rem);">S/ 1,123,869</div>
+                    <span class="tag tag-emerald" style="margin-top:8px;">✅ VAN &gt; 0 → Proyecto Rentable</span>
+                </div>
+                <div class="glass-card kpi-cyan" style="text-align:center;">
+                    <div class="kpi-label">Tasa Interna de Retorno (TIR)</div>
+                    <div class="kpi-value" style="font-size:clamp(1.6rem,3.5vw,2.8rem);">70.66%</div>
+                    <span class="tag tag-cyan" style="margin-top:8px;">✅ TIR (70.66%) &gt;&gt; COK (15%)</span>
+                </div>
+                <div class="glass-card" style="border-left:3px solid var(--accent-amber);">
+                    <p style="font-size:clamp(0.62rem,0.85vw,0.78rem);color:var(--text-secondary);line-height:1.5;">
+                        <strong style="color:var(--accent-amber);">⚠️ Advertencia:</strong> Este escenario asume un crecimiento de clientes bastante optimista. Es necesario evaluar la sensibilidad de estos resultados.
+                    </p>
+                </div>
+            </div>
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);margin-bottom:8px;display:block;">Evolución del Flujo de Caja Operativo (S/)</strong>
+                <div class="chart-container" style="height:clamp(170px, 32vh, 300px);">
+                    <canvas id="chartFCO"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 7: SENSIBILIDAD – TABLA HEATMAP
+         ============================================ -->
+    <div class="slide" id="slide-7">
+        <span class="section-label fade-up">🔬 Análisis de Sensibilidad</span>
+        <h2 class="slide-title fade-up">¿Cómo cambia el VAN ante variaciones?</h2>
+        <p class="slide-subtitle fade-up" style="margin-bottom:1vh;">Se modifica una variable a la vez (±20%) manteniendo las demás constantes.</p>
+        <div class="data-table-wrap fade-up" style="margin-bottom:clamp(8px,1.2vh,14px);">
+            <table class="data-table heatmap-table">
+                <thead>
+                    <tr>
+                        <th style="min-width:200px;">Variable / VAN (S/)</th>
+                        <th>-20%</th>
+                        <th>-10%</th>
+                        <th>0% (base)</th>
+                        <th>+10%</th>
+                        <th>+20%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Número de clientes captados</td>
+                        <td class="heat-low">720,242</td>
+                        <td class="heat-low">922,055</td>
+                        <td class="heat-base">1,123,869</td>
+                        <td class="heat-high">1,325,683</td>
+                        <td class="heat-high">1,524,373</td>
+                    </tr>
+                    <tr>
+                        <td>Precio de suscripción mensual</td>
+                        <td class="heat-low">720,242</td>
+                        <td class="heat-low">922,055</td>
+                        <td class="heat-base">1,123,869</td>
+                        <td class="heat-high">1,325,683</td>
+                        <td class="heat-high">1,524,373</td>
+                    </tr>
+                    <tr>
+                        <td>Costos operativos (soporte + admin)</td>
+                        <td class="heat-high">1,242,361</td>
+                        <td class="heat-high">1,183,946</td>
+                        <td class="heat-base">1,123,869</td>
+                        <td class="heat-low">1,063,792</td>
+                        <td class="heat-low">1,003,714</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="data-table-wrap fade-up">
+            <table class="data-table heatmap-table">
+                <thead>
+                    <tr>
+                        <th style="min-width:200px;">Tasa COK</th>
+                        <th>10.0%</th>
+                        <th>12.5%</th>
+                        <th>15.0% (base)</th>
+                        <th>17.5%</th>
+                        <th>20.0%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>VAN (S/)</td>
+                        <td class="heat-high">1,403,612</td>
+                        <td class="heat-high">1,255,670</td>
+                        <td class="heat-base">1,123,869</td>
+                        <td class="heat-low">1,006,104</td>
+                        <td class="heat-low">900,586</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 8: SENSIBILIDAD – GRÁFICO TORNADO
+         ============================================ -->
+    <div class="slide" id="slide-8">
+        <span class="section-label fade-up">📊 Visualización del Impacto</span>
+        <h2 class="slide-title fade-up">Diagrama de Tornado — Impacto en el VAN</h2>
+        <div class="two-col fade-up">
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);margin-bottom:8px;display:block;">Rango de VAN por Variable (±20%)</strong>
+                <div class="chart-container" style="height:clamp(180px, 30vh, 280px);">
+                    <canvas id="chartTornado"></canvas>
+                </div>
+            </div>
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);margin-bottom:8px;display:block;">VAN vs. Tasa COK</strong>
+                <div class="chart-container" style="height:clamp(180px, 30vh, 280px);">
+                    <canvas id="chartCOK"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="content-grid grid-3 fade-up" style="max-width:1400px;margin-top:clamp(8px,1.2vh,14px);">
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Impacto Clientes/Precio</div>
+                <div class="kpi-value" style="color:var(--accent-rose);font-size:clamp(1.1rem,2vw,1.6rem);">±35.9%</div>
+                <span class="tag tag-rose">Alto riesgo</span>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Impacto Costos Operativos</div>
+                <div class="kpi-value" style="color:var(--accent-amber);font-size:clamp(1.1rem,2vw,1.6rem);">±10.7%</div>
+                <span class="tag tag-amber">Riesgo moderado</span>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">VAN mínimo evaluado</div>
+                <div class="kpi-value" style="color:var(--accent-emerald);font-size:clamp(1.1rem,2vw,1.6rem);">S/ 720K</div>
+                <span class="tag tag-emerald">Aún positivo</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 9: INTERPRETACIÓN
+         ============================================ -->
+    <div class="slide" id="slide-9">
+        <span class="section-label fade-up">🧠 Interpretación</span>
+        <h2 class="slide-title fade-up">¿Qué nos dicen los resultados?</h2>
+        <div class="content-grid grid-2 fade-up" style="max-width:1300px;">
+            <div class="glass-card" style="border-left:3px solid var(--accent-rose);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div class="icon-circle icon-rose">🎯</div>
+                    <strong style="font-size:clamp(0.75rem,1vw,0.92rem);">Clientes y Precio: Máximo Impacto</strong>
+                </div>
+                <p style="font-size:clamp(0.62rem,0.85vw,0.78rem);color:var(--text-secondary);line-height:1.5;">
+                    Una caída de 20% en clientes o precio reduce el VAN en <strong style="color:var(--accent-rose);">35.9%</strong>. Ambas afectan los ingresos de la misma manera (<em>ingresos = clientes × precio</em>), produciendo el mismo efecto proporcional.
+                </p>
+            </div>
+            <div class="glass-card" style="border-left:3px solid var(--accent-amber);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div class="icon-circle icon-amber">⚙️</div>
+                    <strong style="font-size:clamp(0.75rem,1vw,0.92rem);">Costos: Menor Impacto</strong>
+                </div>
+                <p style="font-size:clamp(0.62rem,0.85vw,0.78rem);color:var(--text-secondary);line-height:1.5;">
+                    Un aumento de 20% en costos operativos reduce el VAN en solo <strong style="color:var(--accent-amber);">10.7%</strong>. Los costos fijos crecen más lento que los ingresos conforme la empresa escala.
+                </p>
+            </div>
+            <div class="glass-card" style="border-left:3px solid var(--accent-emerald);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div class="icon-circle icon-emerald">🛡️</div>
+                    <strong style="font-size:clamp(0.75rem,1vw,0.92rem);">Resiliencia ante COK</strong>
+                </div>
+                <p style="font-size:clamp(0.62rem,0.85vw,0.78rem);color:var(--text-secondary);line-height:1.5;">
+                    Incluso con COK = 20%, el VAN se mantiene positivo (<strong style="color:var(--accent-emerald);">S/ 900,586</strong>). El proyecto resiste un mayor costo de oportunidad.
+                </p>
+            </div>
+            <div class="glass-card" style="border-left:3px solid var(--accent-purple);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div class="icon-circle icon-purple">⚠️</div>
+                    <strong style="font-size:clamp(0.75rem,1vw,0.92rem);">TIR con Cautela</strong>
+                </div>
+                <p style="font-size:clamp(0.62rem,0.85vw,0.78rem);color:var(--text-secondary);line-height:1.5;">
+                    La TIR de <strong style="color:var(--accent-purple);">70.66%</strong> es alta pero depende de un crecimiento de clientes optimista. Si no se cumple, la rentabilidad real podría acercarse a los escenarios pesimistas.
+                </p>
+            </div>
+        </div>
+        <div class="glass-card fade-up" style="max-width:1300px;margin-top:clamp(8px,1vh,12px);background:rgba(244,63,94,0.06);border:1px solid rgba(244,63,94,0.15);">
+            <p style="font-size:clamp(0.65rem,0.9vw,0.82rem);color:var(--text-secondary);text-align:center;line-height:1.5;">
+                <strong style="color:var(--accent-rose);">Conclusión clave:</strong> El mayor riesgo está en <strong>qué tan rápido el mercado adopte la plataforma</strong>, no en el control de costos operativos.
+            </p>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 10: RECOMENDACIONES
+         ============================================ -->
+    <div class="slide" id="slide-10">
+        <span class="section-label fade-up">✅ Recomendaciones</span>
+        <h2 class="slide-title fade-up">Recomendaciones para la Gerencia</h2>
+        <div class="content-grid fade-up" style="gap:clamp(12px,2vh,20px);max-width:1100px;">
+            <div class="glass-card rec-card" style="border-left:3px solid var(--accent-cyan);">
+                <div class="rec-letter" style="background:rgba(6,182,212,0.15);color:var(--accent-cyan);">A</div>
+                <div class="rec-text">
+                    <strong>Monitorear desde el primer trimestre</strong> el costo de adquisición de clientes y la velocidad real con la que se suman nuevos usuarios. Definir KPIs claros de captación mensual.
+                </div>
+            </div>
+            <div class="glass-card rec-card" style="border-left:3px solid var(--accent-purple);">
+                <div class="rec-letter" style="background:rgba(139,92,246,0.15);color:var(--accent-purple);">B</div>
+                <div class="rec-text">
+                    <strong>Lanzar primero una versión piloto (MVP)</strong> con un grupo reducido de clientes antes de invertir fuerte en marketing, para confirmar si la adopción es tan rápida como se proyectó.
+                </div>
+            </div>
+            <div class="glass-card rec-card" style="border-left:3px solid var(--accent-emerald);">
+                <div class="rec-letter" style="background:rgba(16,185,129,0.15);color:var(--accent-emerald);">C</div>
+                <div class="rec-text">
+                    <strong>Mantener una estructura de costos flexible</strong> que permita ajustar el gasto en soporte si el crecimiento resulta más lento de lo esperado. Priorizar costos variables sobre fijos.
+                </div>
+            </div>
+        </div>
+        <div class="glass-card fade-up" style="max-width:1100px;margin-top:clamp(10px,1.5vh,18px);text-align:center;background:linear-gradient(135deg,rgba(6,182,212,0.08),rgba(139,92,246,0.08));">
+            <p style="font-size:clamp(0.75rem,1.1vw,1rem);font-weight:600;color:var(--text-primary);line-height:1.5;">
+                El proyecto es rentable bajo el escenario base, pero el éxito depende fundamentalmente de la velocidad de adopción del mercado.
+            </p>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 11: COMPOSICIÓN COSTOS + MÁRGENES
+         ============================================ -->
+    <div class="slide" id="slide-11">
+        <span class="section-label fade-up">📊 Análisis Complementario</span>
+        <h2 class="slide-title fade-up">Composición de Costos y Márgenes Operativos</h2>
+        <div class="two-col fade-up">
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);margin-bottom:8px;display:block;">Composición de Costos — Año 5</strong>
+                <div class="chart-container" style="height:clamp(170px, 30vh, 280px);">
+                    <canvas id="chartCostos"></canvas>
+                </div>
+            </div>
+            <div class="glass-card">
+                <strong style="font-size:clamp(0.75rem,1vw,0.92rem);margin-bottom:8px;display:block;">Margen EBITDA por Año (%)</strong>
+                <div class="chart-container" style="height:clamp(170px, 30vh, 280px);">
+                    <canvas id="chartMargen"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="content-grid grid-3 fade-up" style="max-width:1400px;margin-top:clamp(8px,1.2vh,14px);">
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Margen EBITDA Año 1</div>
+                <div class="kpi-value" style="color:var(--accent-amber);font-size:clamp(1.1rem,2vw,1.6rem);">13.2%</div>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Margen EBITDA Año 3</div>
+                <div class="kpi-value" style="color:var(--accent-blue);font-size:clamp(1.1rem,2vw,1.6rem);">55.7%</div>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <div class="kpi-label">Margen EBITDA Año 5</div>
+                <div class="kpi-value" style="color:var(--accent-emerald);font-size:clamp(1.1rem,2vw,1.6rem);">62.3%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SLIDE 12: REFERENCIAS
+         ============================================ -->
+    <div class="slide" id="slide-12">
+        <span class="section-label fade-up">📖 Referencias</span>
+        <h2 class="slide-title fade-up">Fuentes Bibliográficas</h2>
+        <div class="col-full fade-up" style="max-width:1000px;display:flex;flex-direction:column;gap:clamp(8px,1.2vh,14px);">
+            <div class="ref-item">
+                Caita, O. (2024). <em>Dos (2) indicadores financieros VAN-VPN y TIR: agente transformador en los proyectos.</em> Proyectos Rentables y Sostenibles. <a href="https://www.oscarcaita.com/indicadores-financieros-van-vpn-tir/" target="_blank">oscarcaita.com</a>
+            </div>
+            <div class="ref-item">
+                Chumacero, J. (2021). <em>Técnicas para la evaluación de proyectos de inversión</em> (Documento de Trabajo N.° 2). Universidad Nacional Mayor de San Marcos. <a href="https://economia.unmsm.edu.pe" target="_blank">economia.unmsm.edu.pe</a>
+            </div>
+            <div class="ref-item">
+                LBBNRD. (2024). <em>Importancia del análisis de sensibilidad en proyectos de inversión.</em> <a href="https://lbbnrd.org/importancia-del-analisis-de-sensibilidad-en-proyectos-de-inversion/" target="_blank">lbbnrd.org</a>
+            </div>
+            <div class="ref-item">
+                Valutico. (2026). <em>El flujo de caja libre: una métrica clave para el análisis financiero.</em> <a href="https://valutico.com/es/el-flujo-de-caja-libre-una-metrica-clave-para-el-analisis-financiero/" target="_blank">valutico.com</a>
+            </div>
+        </div>
+        <div class="glass-card fade-up" style="max-width:1000px;margin-top:clamp(12px,2vh,20px);text-align:center;background:linear-gradient(135deg,rgba(6,182,212,0.06),rgba(139,92,246,0.06));">
+            <p style="font-size:clamp(0.7rem,1vw,0.9rem);color:var(--text-secondary);">
+                <strong style="color:var(--text-primary);">Universidad Científica del Sur</strong> · Facultad de Ingeniería Empresarial y de Sistemas<br>
+                <span style="color:var(--text-muted);">Finanzas — Evaluación Continua 3 — Grupo 3 — Julio 2026</span>
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════
+     NAVIGATION
+     ═══════════════════════════════════════════ -->
+<div class="nav-controls" id="navControls">
+    <button class="nav-btn" id="prevBtn" aria-label="Anterior">◂</button>
+    <div class="nav-dots" id="navDots"></div>
+    <span class="slide-counter" id="slideCounter">1 / 13</span>
+    <button class="nav-btn" id="nextBtn" aria-label="Siguiente">▸</button>
+</div>
+
+<div class="keyboard-hint" id="keyHint">Usa <kbd>←</kbd> <kbd>→</kbd> o <kbd>Space</kbd> para navegar</div>
+
+<script>
+// ═══════════════════════════════════════════
+// PRESENTATION ENGINE
+// ═══════════════════════════════════════════
+(function() {
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let currentSlide = 0;
+    let isTransitioning = false;
+
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    const navDots = document.getElementById('navDots');
+    const keyHint = document.getElementById('keyHint');
+
+    // Create dots
+    for (let i = 0; i < totalSlides; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+        dot.addEventListener('click', () => goToSlide(i));
+        navDots.appendChild(dot);
+    }
+
+    function updateUI() {
+        // Progress bar
+        progressBar.style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+        // Counter
+        slideCounter.textContent = (currentSlide + 1) + ' / ' + totalSlides;
+        // Dots
+        document.querySelectorAll('.nav-dot').forEach((d, i) => {
+            d.classList.toggle('active', i === currentSlide);
+        });
+    }
+
+    function goToSlide(index) {
+        if (index === currentSlide || isTransitioning || index < 0 || index >= totalSlides) return;
+        isTransitioning = true;
+
+        const direction = index > currentSlide ? 'left' : 'right';
+        const oldSlide = slides[currentSlide];
+        const newSlide = slides[index];
+
+        // Reset fade-up elements of new slide
+        newSlide.querySelectorAll('.fade-up').forEach(el => {
+            el.style.opacity = '0';
+            el.style.animation = 'none';
+            void el.offsetHeight; // force reflow
+            el.style.animation = '';
+        });
+
+        oldSlide.classList.remove('active');
+        if (direction === 'left') {
+            oldSlide.classList.add('exit-left');
+        }
+        
+        newSlide.style.transform = direction === 'left' ? 'translateX(60px)' : 'translateX(-60px)';
+        
+        requestAnimationFrame(() => {
+            newSlide.classList.add('active');
+            newSlide.style.transform = '';
+        });
+
+        currentSlide = index;
+        updateUI();
+
+        // Hide keyboard hint after first navigation
+        keyHint.classList.add('hidden');
+
+        setTimeout(() => {
+            oldSlide.classList.remove('exit-left');
+            isTransitioning = false;
+            // Initialize charts if they exist on this slide
+            initChartsForSlide(currentSlide);
+        }, 550);
+    }
+
+    function nextSlide() { goToSlide(currentSlide + 1); }
+    function prevSlide() { goToSlide(currentSlide - 1); }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+            e.preventDefault();
+            nextSlide();
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            prevSlide();
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            goToSlide(0);
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            goToSlide(totalSlides - 1);
+        }
+    });
+
+    // Button navigation
+    document.getElementById('nextBtn').addEventListener('click', nextSlide);
+    document.getElementById('prevBtn').addEventListener('click', prevSlide);
+
+    // Touch navigation
+    let touchStartX = 0;
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].screenX - touchStartX;
+        const dy = e.changedTouches[0].screenY - touchStartY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+            dx < 0 ? nextSlide() : prevSlide();
+        }
+    }, { passive: true });
+
+    // Fullscreen
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
+    updateUI();
+
+    // ═══════════════════════════════════════════
+    // CHARTS
+    // ═══════════════════════════════════════════
+    const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#94a3b8',
+                    font: { family: "'Inter', sans-serif", size: 11 },
+                    padding: 12,
+                    usePointStyle: true,
+                    pointStyleWidth: 8
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(10, 14, 26, 0.92)',
+                titleColor: '#f1f5f9',
+                bodyColor: '#94a3b8',
+                borderColor: 'rgba(6, 182, 212, 0.3)',
+                borderWidth: 1,
+                padding: 10,
+                cornerRadius: 8,
+                titleFont: { family: "'Inter', sans-serif", weight: '600' },
+                bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
+                callbacks: {
+                    label: function(ctx) {
+                        let val = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed;
+                        if (typeof val === 'number' && Math.abs(val) >= 1000) {
+                            return ctx.dataset.label + ': S/ ' + val.toLocaleString('es-PE');
+                        }
+                        return ctx.dataset.label + ': ' + val;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: '#64748b', font: { size: 11 } },
+                grid: { color: 'rgba(255,255,255,0.04)' }
+            },
+            y: {
+                ticks: { 
+                    color: '#64748b', 
+                    font: { size: 10 },
+                    callback: function(v) {
+                        if (Math.abs(v) >= 1000000) return 'S/ ' + (v/1000000).toFixed(1) + 'M';
+                        if (Math.abs(v) >= 1000) return 'S/ ' + (v/1000).toFixed(0) + 'K';
+                        return v;
+                    }
+                },
+                grid: { color: 'rgba(255,255,255,0.04)' }
+            }
+        }
+    };
+
+    const chartsInitialized = {};
+    const years = ['Año 1', 'Año 2', 'Año 3', 'Año 4', 'Año 5'];
+
+    function initChartsForSlide(slideIndex) {
+        if (slideIndex === 4 && !chartsInitialized[4]) {
+            // Clientes chart
+            new Chart(document.getElementById('chartClientes'), {
+                type: 'bar',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Clientes activos',
+                        data: [100, 275, 550, 825, 1075],
+                        backgroundColor: [
+                            'rgba(6,182,212,0.7)',
+                            'rgba(59,130,246,0.7)',
+                            'rgba(99,102,241,0.7)',
+                            'rgba(139,92,246,0.7)',
+                            'rgba(16,185,129,0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(6,182,212,1)',
+                            'rgba(59,130,246,1)',
+                            'rgba(99,102,241,1)',
+                            'rgba(139,92,246,1)',
+                            'rgba(16,185,129,1)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        legend: { display: false },
+                        tooltip: {
+                            ...chartDefaults.plugins.tooltip,
+                            callbacks: {
+                                label: (ctx) => ctx.parsed.y + ' clientes'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Ingresos chart
+            new Chart(document.getElementById('chartIngresos'), {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Ingresos (S/)',
+                        data: [216000, 594000, 1188000, 1782000, 2322000],
+                        borderColor: 'rgba(16,185,129,1)',
+                        backgroundColor: 'rgba(16,185,129,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2.5,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0a0e1a',
+                        pointBorderColor: 'rgba(16,185,129,1)',
+                        pointBorderWidth: 2.5
+                    }]
+                },
+                options: chartDefaults
+            });
+            chartsInitialized[4] = true;
+        }
+
+        if (slideIndex === 6 && !chartsInitialized[6]) {
+            // FCO chart
+            new Chart(document.getElementById('chartFCO'), {
+                type: 'bar',
+                data: {
+                    labels: ['Inversión', ...years],
+                    datasets: [{
+                        label: 'Flujo de Caja (S/)',
+                        data: [-350000, 28480, 207441, 481206, 772597, 1074293],
+                        backgroundColor: [
+                            'rgba(244,63,94,0.7)',
+                            'rgba(6,182,212,0.6)',
+                            'rgba(59,130,246,0.6)',
+                            'rgba(99,102,241,0.6)',
+                            'rgba(139,92,246,0.6)',
+                            'rgba(16,185,129,0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(244,63,94,1)',
+                            'rgba(6,182,212,1)',
+                            'rgba(59,130,246,1)',
+                            'rgba(99,102,241,1)',
+                            'rgba(139,92,246,1)',
+                            'rgba(16,185,129,1)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        legend: { display: false }
+                    }
+                }
+            });
+            chartsInitialized[6] = true;
+        }
+
+        if (slideIndex === 8 && !chartsInitialized[8]) {
+            // Tornado chart (horizontal bar)
+            new Chart(document.getElementById('chartTornado'), {
+                type: 'bar',
+                data: {
+                    labels: ['Clientes / Precio', 'Costos Operativos'],
+                    datasets: [
+                        {
+                            label: '-20%',
+                            data: [720242, 1242361],
+                            backgroundColor: 'rgba(245,158,11,0.6)',
+                            borderColor: 'rgba(245,158,11,1)',
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Base',
+                            data: [1123869, 1123869],
+                            backgroundColor: 'rgba(59,130,246,0.6)',
+                            borderColor: 'rgba(59,130,246,1)',
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        },
+                        {
+                            label: '+20%',
+                            data: [1524373, 1003714],
+                            backgroundColor: 'rgba(16,185,129,0.6)',
+                            borderColor: 'rgba(16,185,129,1)',
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    ...chartDefaults,
+                    indexAxis: 'y',
+                    scales: {
+                        ...chartDefaults.scales,
+                        x: {
+                            ...chartDefaults.scales.y,
+                            ticks: {
+                                ...chartDefaults.scales.y.ticks,
+                                callback: function(v) {
+                                    if (v >= 1000000) return 'S/' + (v/1000000).toFixed(1) + 'M';
+                                    if (v >= 1000) return 'S/' + (v/1000).toFixed(0) + 'K';
+                                    return v;
+                                }
+                            }
+                        },
+                        y: {
+                            ...chartDefaults.scales.x
+                        }
+                    }
+                }
+            });
+
+            // COK chart
+            new Chart(document.getElementById('chartCOK'), {
+                type: 'line',
+                data: {
+                    labels: ['10%', '12.5%', '15%', '17.5%', '20%'],
+                    datasets: [{
+                        label: 'VAN (S/)',
+                        data: [1403612, 1255670, 1123869, 1006104, 900586],
+                        borderColor: 'rgba(139,92,246,1)',
+                        backgroundColor: 'rgba(139,92,246,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2.5,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#0a0e1a',
+                        pointBorderColor: 'rgba(139,92,246,1)',
+                        pointBorderWidth: 2.5
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Tasa COK', color: '#64748b', font: { size: 11 } },
+                            ticks: { color: '#64748b', font: { size: 11 } },
+                            grid: { color: 'rgba(255,255,255,0.04)' }
+                        },
+                        y: chartDefaults.scales.y
+                    }
+                }
+            });
+            chartsInitialized[8] = true;
+        }
+
+        if (slideIndex === 11 && !chartsInitialized[11]) {
+            // Costos pie chart - Año 5
+            new Chart(document.getElementById('chartCostos'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hosting/Nube', 'Marketing', 'Soporte Técnico', 'Gastos Admin.'],
+                    datasets: [{
+                        data: [278640, 232200, 260000, 105000],
+                        backgroundColor: [
+                            'rgba(6,182,212,0.7)',
+                            'rgba(245,158,11,0.7)',
+                            'rgba(139,92,246,0.7)',
+                            'rgba(244,63,94,0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(6,182,212,1)',
+                            'rgba(245,158,11,1)',
+                            'rgba(139,92,246,1)',
+                            'rgba(244,63,94,1)'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '55%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#94a3b8',
+                                font: { family: "'Inter', sans-serif", size: 10 },
+                                padding: 10,
+                                usePointStyle: true,
+                                pointStyleWidth: 8
+                            }
+                        },
+                        tooltip: {
+                            ...chartDefaults.plugins.tooltip,
+                            callbacks: {
+                                label: function(ctx) {
+                                    const total = ctx.dataset.data.reduce((a,b) => a + b, 0);
+                                    const pct = (ctx.parsed / total * 100).toFixed(1);
+                                    return ctx.label + ': S/ ' + ctx.parsed.toLocaleString('es-PE') + ' (' + pct + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Margen EBITDA chart
+            const ingresos = [216000, 594000, 1188000, 1782000, 2322000];
+            const ebitda = [28480, 273320, 661640, 1074960, 1446160];
+            const margenes = ebitda.map((e, i) => (e / ingresos[i] * 100).toFixed(1));
+
+            new Chart(document.getElementById('chartMargen'), {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Margen EBITDA (%)',
+                        data: margenes,
+                        borderColor: 'rgba(59,130,246,1)',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2.5,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#0a0e1a',
+                        pointBorderColor: 'rgba(59,130,246,1)',
+                        pointBorderWidth: 2.5
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        x: chartDefaults.scales.x,
+                        y: {
+                            ...chartDefaults.scales.y,
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 10 },
+                                callback: (v) => v + '%'
+                            },
+                            min: 0,
+                            max: 70
+                        }
+                    }
+                }
+            });
+            chartsInitialized[11] = true;
+        }
+    }
+
+    // Initialize charts for the first visible slide (cover has none)
+    // We wait a moment so the page loads
+    setTimeout(() => initChartsForSlide(0), 100);
+})();
+</script>
+</body>
+</html>
